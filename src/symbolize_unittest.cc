@@ -35,6 +35,9 @@
 
 #include <csignal>
 #include <iostream>
+#include <map>
+#include <string>
+
 
 #include "config.h"
 #include "glog/logging.h"
@@ -133,12 +136,40 @@ TEST(Symbolize, Symbolize) {
 
 struct Foo {
   static void func(int x);
+  static void longParamFunc(
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p0,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p1,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p2,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p3,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p4,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p5,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p6,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p7,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p8,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p9
+		);
 };
 
 void ATTRIBUTE_NOINLINE Foo::func(int x) {
   volatile int a = x;
   // NOTE: In C++20, increment of object of volatile-qualified type is
   // deprecated.
+  a = a + 1;
+}
+
+void ATTRIBUTE_NOINLINE Foo::longParamFunc(
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p0,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p1,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p2,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p3,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p4,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p5,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p6,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p7,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p8,
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string> > p9
+		) {
+  volatile int a = p0.size();
   a = a + 1;
 }
 
@@ -150,6 +181,9 @@ TEST(Symbolize, SymbolizeWithDemangling) {
 #      if !defined(_MSC_VER) || !defined(NDEBUG)
 #        if defined(HAVE___CXA_DEMANGLE)
   EXPECT_STREQ("Foo::func(int)", TrySymbolize((void*)(&Foo::func)));
+  // Very long functions can be truncated, but we should not crash or return null
+  // Also the result should start properly.
+  EXPECT_TRUE(0 == std::string( TrySymbolize( (void*)(&Foo::longParamFunc))).find("Foo::longParamFunc("));
 #        else
   EXPECT_STREQ("Foo::func()", TrySymbolize((void*)(&Foo::func)));
 #        endif
